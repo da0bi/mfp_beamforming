@@ -1,0 +1,28 @@
+# Ignore compiled python files.
+*.pyc
+
+# Ignore temporary files.
+*.bak
+
+# Ignore the coverage folder
+.coverage
+
+# Ignore the MANIFEST file.
+MANIFEST
+
+# Ignore the .swp file
+*.swp
+
+# Ignore build files.
+*.o
+*.so
+*.dll
+
+# Emacs backup and temp files.
+*~
+\#*\#
+.#*
+
+# Ignore the egg installation folder.
+psysmon.egg-info/
+
