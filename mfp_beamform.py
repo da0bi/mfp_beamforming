@@ -11,7 +11,7 @@ if psysmon.wx_available:
 
 from obspy.core.utcdatetime import UTCDateTime
 
-import psysmon.packages.mfp_beamforming.beamform_fcts as bf
+import beamform_fcts as bf
 
 
 class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
