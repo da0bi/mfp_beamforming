@@ -1,0 +1,39 @@
+{
+    "array_name": "JO",
+    "array_components": ["Z", "N", "E"],
+    "tmin": "2014-03-28T04:00:00Z",
+    "tmax": "2014-03-29T01:00:00Z",
+    "tinc": 60.0,
+    "w_length": 30,
+    "w_delay": 15,
+    "processor": "bartlett",
+    "slow": true,
+    "svmin": 0.0,
+    "svmax": 1.2,
+    "dsv": 0.01,
+    "neig": 0,    
+    "norm": true,
+    "df": 0.1,
+    "f": [
+        {
+            "min": 0.5,
+            "max": 1.0,
+            "lowpass": 0.2,
+            "highpass": 3.2
+        },
+        {
+            "min": 0.6,
+            "max": 1.1,
+            "lowpass": 0.3,
+            "highpass": 3.3
+        }
+    ],
+    "data" : {
+        "source": "fdsn",
+        "site": "geofon",
+        "query_args": {
+            "network": "5L",
+            "channel": "?H?,?L?"
+        }
+    }
+}

@@ -1,0 +1,12 @@
+matchedfield_beamformer parameters:
+
+-> scoord:  from psysmon?
+            UTM conversion?
+
+-> Fs:      samples per second from psysmon?
+            line number 377, 379 
+
+
+
+
+
