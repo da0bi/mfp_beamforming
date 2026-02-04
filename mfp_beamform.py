@@ -158,7 +158,7 @@ class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
             beam_data = {
                 'scnl': cur_scnl,
                 'start_time': start_time,
-                'end_time': end_time,
+                #'end_time': end_time,
                 'xcoord': xcoord,
                 'ycoord': ycoord,
                 'zcoord': zcoord,
