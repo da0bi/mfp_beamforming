@@ -382,7 +382,7 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
 
     # initialize data steering vector:
     # dim: [number of frequencies, number of stations, number of analysis windows]
-    vect_data = np.zeros((freq.size, n_stats, nshots), dtype=np.complex)
+    vect_data = np.zeros((freq.size, n_stats, nshots), dtype=np.complex64)
 
     # construct matrix for DFT calculation
     # dim: [number w_time points, number frequencies]

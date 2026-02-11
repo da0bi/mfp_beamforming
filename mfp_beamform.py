@@ -126,7 +126,7 @@ class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
             self.logger.info('Calculating MFP beamformer.')
         
             # Extract parameters from the loaded json file.
-            scoord = self.process_params['scoord']
+            scoord = np.array(self.process_params['scoord'])
             xrng = self.process_params['xrng']
             yrng = self.process_params['yrng']
             zrng = self.process_params['zrng']
