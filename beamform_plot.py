@@ -83,7 +83,7 @@ def plot_bf_array(mean_bf_array, semb_max, semb_min, xcoord, ycoord, scoord, sha
     gdf.plot(ax=ax, facecolor="none", edgecolor="black", linewidth=1)
 
     # overlay station coordinates
-    ax.scatter(ys, xs, c="black", s=30, edgecolor="black", label="Stations", zorder=3)
+    ax.scatter(ys, xs, c="black", s=15, edgecolor="black", label="Stations", zorder=3)
 
     ax.set_xlim(ycoord.min(), ycoord.max())
     ax.set_ylim(xcoord.min(), xcoord.max()) 
@@ -99,7 +99,9 @@ def plot_bf_array(mean_bf_array, semb_max, semb_min, xcoord, ycoord, scoord, sha
     
     #plt.show()
 
-
+###################
+# DEFINE PARAMETERS
+###################
 # Define path for loading the data
 directory = Path("/home/db/Projects/APO_Monitoring_2023/10_psysmon/output/mfp_beamforming_test")
 proc_folder = "smi-up.db-psysmon-apo23-mfp_beamforming_20260209_141822_044687-time_window_looper"
@@ -111,7 +113,9 @@ comp = "DPZ"
 network = "AP"
 loc = "C"
 # Define year and day of year to process
-year_doy = "2023_182"
+year = "2023"
+doy = "183"
+year_doy = year + "_" + doy
 # construct path for loading the data
 directory = directory / station / comp / year_doy
 
@@ -135,6 +139,9 @@ shp_path = "/home/db/Projects/APOlsen/01_QGis/03_APO_shp/APO_utm.shp"
 semb_max = 0.4
 semb_min = 0.2
 
+##########################################
+# LOAD DATA, CALCULATE AND PLOT BEAMFORMER
+##########################################
 for fpath in sorted(directory.iterdir()):
     if fpath.is_file() and fpath.suffix == ".db":
         print(fpath)
@@ -183,4 +190,3 @@ imageio.mimsave(
     duration=5,
     loop=0
 )
-
