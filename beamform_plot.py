@@ -168,16 +168,17 @@ proc_folder = "smi-up.db-psysmon-apo23-mfp_beamforming_20260310_153534_385490-ti
 sfolder = "beam"
 directory = directory / proc_folder / sfolder
 # Define station, component, network and channel for the data to load
-station = "AP233"
-comp = "DPZ"
-network = "AP"
-loc = "C"
+#station = "AP233"
+#comp = "DPZ"
+#network = "AP"
+#loc = "C"
 # Define year and day of year to process
 year = "2023"
 doy = "182"
 year_doy = year + "_" + doy
 # construct path for loading the data
-directory = directory / station / comp / year_doy
+#directory = directory / station / comp / year_doy
+directory = directory / year_doy
 
 # station coordinates
 scoord = np.array([

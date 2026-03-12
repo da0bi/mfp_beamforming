@@ -235,11 +235,9 @@ class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
                                             end_time = last_time,
                                             origin_name = self.name,
                                             origin_resource = origin_resource,
-                                            sub_directory = (scnl[0],
-                                                             scnl[1],
-                                                             "{0:04d}_{1:03d}".format(first_time.year,
-                                                                                      first_time.julday)),
-                                            postfix = '_'.join(scnl),
+                                            sub_directory = ("{0:04d}_{1:03d}".format(first_time.year,
+                                                                                      first_time.julday),),
+                                            postfix = '',
                                             db = export_data)
         self.result_bag.add(shelve_result)
         self.logger.info("Published the result for scnl %s (%s to %s).", scnl,
