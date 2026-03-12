@@ -23,6 +23,9 @@ daniel binder <daniel.binder@uni-potsdam.de>
     - annul_dominant_interferers_all
     - phase_matching_fast
     - phase_matching_fast_all
+    
+- deleted fcts:
+    - plwave_beamformer
 
 Vectorization of code was done with AI (chatgpt).
 """
@@ -328,9 +331,6 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
         ycoord: grid coordinates in y-direction (dim: [number y-grid points, 1])
         c: phase velocity (dim: [number of cs, 1])
         beamformer (dim: [number y-grid points, number x-grid points, number cs])
-
-    Parameters differing from plwave_beamformer fct:
-    xrng, yrng, zrng, dx, dy, dz, svrng, ds
     """
     # -------------------------------------------------
     # spatial grid
