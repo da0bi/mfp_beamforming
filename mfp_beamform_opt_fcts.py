@@ -175,7 +175,7 @@ def phase_matching(replica, CSDM, processor):
     :param processor: Processor used for phase matching. bartlett or adaptive.
 
     :return: numpy.ndarray
-        beam
+        beam (dim: [n_param])
     """
 
     if processor == "adaptive":
@@ -207,6 +207,9 @@ def phase_matching_fast(replica, CSDM, processor):
         combinations (dim: [n_stats, n_param])
     :param CSDM: 2-D array CSDM matrix (dim: [n_stats, n_stats])
     :param processor: Processor used for phase matching. bartlett or adaptive.
+
+    :return: numpy.ndarray
+        beam (dim: [n_param])
     """
 
     if processor == "adaptive":
@@ -236,6 +239,9 @@ def phase_matching_fast_all(replica_all, CSDM_all, processor):
         combinations and all frequencies(dim: [n_freq, n_stats, n_param])
     :param CSDM_all: 2-D array CSDM matrix (dim: [n_freq, n_stats, n_stats])
     :param processor: Processor used for phase matching. bartlett or adaptive.
+    
+    :return: numpy.ndarray
+        the beams for all frequencies (dim: [n_freq, n_param])
     """
 
     tmp = np.einsum(
@@ -326,9 +332,6 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
     Parameters differing from plwave_beamformer fct:
     xrng, yrng, zrng, dx, dy, dz, svrng, ds
     """
-
-    n_stats = data.shape[1]
-
     # -------------------------------------------------
     # spatial grid
     # -------------------------------------------------
@@ -397,8 +400,6 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
                         linear_fraction=0.4,
                         falpha=0.05
                         )
-
-    n_freq = freq.size
 
     # -------------------------------------------------
     # sliding window preparation
