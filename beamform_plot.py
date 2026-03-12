@@ -25,78 +25,138 @@ def imp_shelve_file(directory, file_to_load):
     bf_data.update(db)
     # Close shelve file
     db.close()
-    
+
     return bf_data
 
-def bf_opt_arr_per_t(bf_data):
-    # Extract the optimum z-coordinate and slowness to receive 
+def bf_opt_arr_per_t(bf_data, mode):
+    # Extract the optimum z-coordinate and slowness to receive
     # highest mean beamformer value for each time step
-    # save beamformer array with highest mean value for each time step  
+    # save beamformer array with highest mean or max value for each time step
     best_per_t = {}
-    bf_arrays = []    
+    bf_arrays = []
 
-    print('datetime', 'opt_z', 'opt_s', 'max_mean_bf', sep="\t")   
+    t = next(iter(bf_data))
+    zcoord = bf_data[t]['zcoord']
+    svals = bf_data[t]['c']
+
+    if mode == 'max':
+        xcoord = bf_data[t]['xcoord']
+        ycoord = bf_data[t]['ycoord']
+        xymax = []
+
+    print('datetime', 'opt_z', 'opt_s', 'max_mean_bf', sep="\t")
 
     for t in bf_data.keys():
         arr = bf_data[t]['beamformer']    # shape(x-range, y-range, z-range, slowness-range)
-        zcoord = bf_data[t]['zcoord']
-        s_vals = bf_data[t]['c']
+#        zcoord = bf_data[t]['zcoord']
+#        s_vals = bf_data[t]['c']
 
-        arr_mean = arr.mean(axis=(0,1))    # shape(z-range, slowness-range)
+        if mode == 'mean':
+            arr_filtered = arr.mean(axis=(0,1))    # shape(z-range, slowness-range)
+            z_idx, s_idx = np.unravel_index(arr_filtered.argmax(), arr_filtered.shape)
 
-        z_idx, s_idx = np.unravel_index(arr_mean.argmax(), arr_mean.shape)
+        elif mode == 'max':
+            arr_filtered = arr.max(axis=(0,1))    # shape(z-range, slowness-range)
+            z_idx, s_idx = np.unravel_index(arr_filtered.argmax(), arr_filtered.shape)
 
-        # save the beamformer array with the highest mean value for each time step
+        # save the beamformer array with the highest mean or max value for each time step
         bf_arrays.append(arr[:,:,z_idx,s_idx])
 
+        if mode == 'max':
+            xmax, ymax = max_xy_coord(arr[:,:,z_idx,s_idx], xcoord, ycoord)
+            xymax.append((t, xmax, ymax))
+
         best_z = zcoord[z_idx]
-        best_s = s_vals[s_idx]
-        best_arr = arr_mean[z_idx, s_idx]
+        best_s = svals[s_idx]
+        best_arr = arr_filtered[z_idx, s_idx]
 
         best_per_t[t] = {
             "z": best_z,
             "s": best_s,
-            "arr_mean": best_arr
+            "arr_opt": best_arr
         }
 
         print(t, best_z, best_s, best_arr, sep="\t")
-    # calculate the mean beamformer array of all the beamformer array 
-    # with the highest means for each time step
+    # calculate the mean beamformer array of all the beamformer array
+    # with the highest means or maxs for each time step
     mean_bf_array = np.mean(bf_arrays, axis=0)
-    
-    return best_per_t, mean_bf_array
 
-def plot_bf_array(mean_bf_array, semb_max, semb_min, xcoord, ycoord, scoord, shapefile_path, title, png_name, png_dir):
+    return best_per_t, mean_bf_array, xymax
+
+
+def max_xy_coord(arr, xcoord, ycoord):
+    # 1. Find the flat index of the max value
+    flat_idx = np.argmax(arr)
+
+    # 2. Unravel the index into 2D indices (ix, iy)
+    # ix will be between 0-50, iy will be between 0-55
+    ix, iy = np.unravel_index(flat_idx, arr.shape)
+
+    # 3. Retrieve the actual coordinate values from your arrays
+    max_x = xcoord[ix]
+    max_y = ycoord[iy]
+
+    return max_x, max_y
+
+
+def plot_bf_array(mean_bf_array, semb_max, semb_min, xcoord, ycoord, scoord, xymax, shapefile_path, title, png_name, png_dir):
     # plot the mean beamformer array of all the beamformer array with the highest means for each time step
     xs = scoord[:, 1]
     ys = scoord[:, 0]
+
 
     # load apo shapefile
     gdf = gpd.read_file(shp_path)
 
     fig, ax = plt.subplots(figsize=(10, 8))
-    pcm = ax.pcolormesh(ycoord, xcoord, mean_bf_array, shading="auto")
+    pcm = ax.pcolormesh(
+            ycoord,
+            xcoord,
+            mean_bf_array,
+            cmap='inferno',
+            shading="auto"
+            )
     pcm.set_clim(semb_min, semb_max)
     plt.colorbar(pcm, ax=ax, label="Semblance")
 
     # plot shapefile
-    gdf.plot(ax=ax, facecolor="none", edgecolor="black", linewidth=1)
+    gdf.plot(ax=ax, facecolor="none", edgecolor="white", linewidth=1)
 
     # overlay station coordinates
-    ax.scatter(ys, xs, c="black", s=15, edgecolor="black", label="Stations", zorder=3)
+    ax.scatter(ys, xs,
+        marker='^',
+        c="white",
+        s=50,
+        edgecolor="black",
+        label="Stations",
+        zorder=3
+        )
 
-    ax.set_xlim(ycoord.min(), ycoord.max())
-    ax.set_ylim(xcoord.min(), xcoord.max()) 
+    # overlay max semblance value of each time step
+    if xymax is not None:
+        t, xmax, ymax = zip(*xymax)
+        ax.scatter(ymax, xmax,
+            c=range(len(t)),
+            cmap='inferno',
+            s=30,
+            edgecolor="white",
+            label="max semblance",
+            zorder=3
+        )
+
+
+    ax.set_xlim(ycoord.min()-75, ycoord.max()+75)
+    ax.set_ylim(xcoord.min()-75, xcoord.max()+75)
 
     ax.set_xlabel("Easting (m)")
     ax.set_ylabel("Northing (m)")
-    
+
     ax.set_title(title)
-    
+
     # save the plot
     png_path = png_dir / f"{png_name}.png"
     plt.savefig(png_path, dpi=150, bbox_inches="tight")
-    
+
     #plt.show()
 
 ###################
@@ -104,7 +164,7 @@ def plot_bf_array(mean_bf_array, semb_max, semb_min, xcoord, ycoord, scoord, sha
 ###################
 # Define path for loading the data
 directory = Path("/home/db/Projects/APO_Monitoring_2023/10_psysmon/output/mfp_beamforming_test")
-proc_folder = "smi-up.db-psysmon-apo23-mfp_beamforming_20260209_141822_044687-time_window_looper"
+proc_folder = "smi-up.db-psysmon-apo23-mfp_beamforming_20260310_153534_385490-time_window_looper"
 sfolder = "beam"
 directory = directory / proc_folder / sfolder
 # Define station, component, network and channel for the data to load
@@ -114,7 +174,7 @@ network = "AP"
 loc = "C"
 # Define year and day of year to process
 year = "2023"
-doy = "183"
+doy = "182"
 year_doy = year + "_" + doy
 # construct path for loading the data
 directory = directory / station / comp / year_doy
@@ -136,8 +196,8 @@ scoord = np.array([
 shp_path = "/home/db/Projects/APOlsen/01_QGis/03_APO_shp/APO_utm.shp"
 
 # set semblance limits for bf plotting
-semb_max = 0.4
-semb_min = 0.2
+semb_max = 0.5
+semb_min = 0.4
 
 ##########################################
 # LOAD DATA, CALCULATE AND PLOT BEAMFORMER
@@ -145,12 +205,12 @@ semb_min = 0.2
 for fpath in sorted(directory.iterdir()):
     if fpath.is_file() and fpath.suffix == ".db":
         print(fpath)
-        
+
         # load the data
         bf_data = imp_shelve_file(fpath.parent, fpath.name)
 
-        # calculate the mean beamformer array of all the beamformer array with the highest means for each time step
-        best_per_t, mean_bf_array = bf_opt_arr_per_t(bf_data)    
+        # calculate the mean beamformer array of all the beamformer array with the highest means or maxs per time step
+        best_per_t, mean_bf_array, xymax = bf_opt_arr_per_t(bf_data, mode='max')
 
         # plotting
         # take random timestamp and extract the x and y coordinates for plotting
@@ -163,30 +223,31 @@ for fpath in sorted(directory.iterdir()):
         t_next = t_dt + timedelta(hours=1)
         title = f"{t_dt:%Y-%m-%d} {t_dt:%H}:00 – {t_next:%H}:00"
         png_name = f"{t_dt:%Y-%m-%d}_{t_dt:%H}_{t_next:%H}"
-        
+
         # make subfolder for saving the plots
         png_dir = directory / "gif_frames"
         png_dir.mkdir(exist_ok=True)
 
-        plot_bf_array(mean_bf_array, 
-                      semb_max, 
-                      semb_min, 
-                      xcoord, 
-                      ycoord, 
-                      scoord, 
-                      shp_path, 
+        plot_bf_array(mean_bf_array,
+                      semb_max,
+                      semb_min,
+                      xcoord,
+                      ycoord,
+                      scoord,
+                      xymax,
+                      shp_path,
                       title,
                       png_name,
                       png_dir
                       )
-        
+
 # Create a GIF animation of the beamformer array over time
 gif_name = f"{t_dt:%Y-%m-%d}_animation.gif"
 gif_path = png_dir / gif_name
 frames = [imageio.imread(png) for png in sorted(png_dir.glob("*.png"))]
 imageio.mimsave(
     gif_path,
-    frames, 
+    frames,
     duration=5,
     loop=0
 )

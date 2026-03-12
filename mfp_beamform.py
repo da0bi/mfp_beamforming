@@ -11,7 +11,8 @@ if psysmon.wx_available:
 
 from obspy.core.utcdatetime import UTCDateTime
 
-import beamform_fcts as bf
+#import beamform_fcts as bf
+import mfp_beamform_opt_fcts as bf
 
 
 class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
@@ -30,7 +31,7 @@ class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
 
         # The processing parameters loaded from a json file.
         self.process_params = None
-        
+
         # The computed beam data.
         self.beam_data = {}
 
@@ -62,7 +63,7 @@ class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
         dlg = psy_lb.ListbookPrefDialog(preferences = self.pref_manager)
         dlg.ShowModal()
         dlg.Destroy()
-    
+
     def execute(self, stream, process_limits = None, origin_resource = None, **kwargs):
         '''
         '''
@@ -74,7 +75,7 @@ class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
                 self.process_params = json.load(json_file)
 
             self.logger.info('Loaded parameters from file: %s.', self.process_params)
-            
+
 
         start_time = process_limits[0]
         end_time = process_limits[1]
@@ -83,17 +84,17 @@ class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
 
         # Initiate numpy array from stream with shape (n_samples, n_stations)
         tr_array = np.zeros((stream[0].stats.npts, len(stream)))
-        
+
         for i, cur_trace in enumerate(stream):
             self.logger.info('###Processing trace with id %s.', cur_trace.id)
-            
-            cur_scnl = (cur_trace.stats.station, cur_trace.stats.channel, 
+
+            cur_scnl = (cur_trace.stats.station, cur_trace.stats.channel,
                         cur_trace.stats.network, cur_trace.stats.location)
 
             # Check if a result has to be created.
             self.check_result_needed(cur_scnl, start_time)
-            
-            # Check that all traces have the same sampling rate and number 
+
+            # Check that all traces have the same sampling rate and number
             # of samples as compared to the first trace of the stream.
             if cur_trace.stats.sampling_rate != stream[0].stats.sampling_rate:
                 self.logger.error("Trace has a different sampling rate.")
@@ -101,7 +102,7 @@ class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
             elif cur_trace.stats.npts != stream[0].stats.npts:
                 self.logger.error("Trace has a different number of samples.")
                 continue
-            
+
             # Get the channel instance from the inventory.
             cur_channel = self.project.geometry_inventory.get_channel(station = cur_trace.stats.station,
                                                                       name = cur_trace.stats.channel,
@@ -117,14 +118,14 @@ class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
 
             # Fill numpy array with current trace data.
             tr_array[:, i] = cur_trace.data
-        
+
         # Calculate the beamformer.
         if np.all(tr_array == 0):
             self.logger.warning('No valid data found in stream; skipping beamforming.')
             return
         else:
             self.logger.info('Calculating MFP beamformer.')
-        
+
             # Extract parameters from the loaded json file.
             scoord = np.array(self.process_params['scoord'])
             xrng = self.process_params['xrng']
@@ -138,22 +139,25 @@ class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
             slow = self.process_params['slow']
             fmin = self.process_params['fmin']
             fmax = self.process_params['fmax']
+            cmin = self.process_params['cmin']
+            freq_linear = self.process_params['freq_linear']
             Fs = self.process_params['Fs']
             w_length = self.process_params['w_length']
             w_delay = self.process_params['w_delay']
-            proc = self.process_params['processor']
+            processor = self.process_params['processor']
+            neig = self.process_params['neig']
             norm = self.process_params['norm']
-            
+            precompute_replica = self.process_params['precompute_replica']
+            preallocate_replica = self.process_params['preallocate_replica']
+
             # Call the mfp_beamforming function here.
             xcoord, ycoord, zcoord, c, beamformer = bf.matchedfield_beamformer(
-                tr_array, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, 
-                ds, slow, fmin, fmax, Fs, w_length, w_delay, 
-                processor=proc, 
-                df=0.2,
-                neig=0, 
-                norm=norm,
+                tr_array, scoord, xrng, yrng, zrng, dx, dy, dz, svrng,
+                ds, slow, fmin, fmax, cmin, freq_linear, Fs, w_length, w_delay,
+                processor, neig, norm=norm, precompute_replica=precompute_replica,
+                preallocate_replica=preallocate_replica
                 )
-            
+
             # Store the beam data in the beam dictionary.
             beam_data = {
                 'scnl': cur_scnl,
@@ -251,6 +255,3 @@ class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
         for cur_scnl, cur_data in self.beam_data.items():
             if cur_data:
                 self.create_result(cur_scnl, origin_resource = origin_resource)
-
-
-

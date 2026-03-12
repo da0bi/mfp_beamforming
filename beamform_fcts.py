@@ -156,8 +156,8 @@ def plwave_beamformer(data, scoord, svmin, svmax, dsv, slow, fmin, fmax, Fs, w_l
         teta: back azimuth (dim: [number of bazs, 1])
         c: phase velocity (dim: [number of cs, 1])
         beamformer (dim: [number of bazs, number of cs])
-    
-    
+
+
     Parameters differing from matchedfield_beamformer fct:
     svmin, svmax, dsv, baz=None
     """
@@ -264,7 +264,7 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
     Can also be used to focus the beam to a certain coordinate, which must be
     specified with xmax, ymax, zmax. In this case, dx, dy, and dz need to be set
     to zero!
-    
+
     :type data: numpy.ndarray
     :param data: time series of used stations (dim: [number of samples, number of stations])
     :type scoord: numpy.ndarray
@@ -279,7 +279,7 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
     :param svrng: slowness interval used to calculate replica vector
     :type ds: float
     :param ds: slowness step used to calculate replica vector
-    :type slow: boolean 
+    :type slow: boolean
     :param slow: if true, svmin, svmax, dsv are slowness values. if false, velocity values
     :type fmin, fmax: float
     :param fmin, fmax: frequency range for which the beamforming result is calculated
@@ -305,8 +305,8 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
         ycoord: grid coordinates in y-direction (dim: [number y-grid points, 1])
         c: phase velocity (dim: [number of cs, 1])
         beamformer (dim: [number y-grid points, number x-grid points, number cs])
-    
-    Parameters differing from plwave_beamformer fct: 
+
+    Parameters differing from plwave_beamformer fct:
     xrng, yrng, zrng, dx, dy, dz, svrng, ds
     """
 
@@ -320,12 +320,12 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
     # if beam is calculated for a regular grid
     else:
         ycoord = np.arange(yrng[0], yrng[1] + dy, dy)
-    # same for x ... 
+    # same for x ...
     if xrng[0] == xrng[1]:
         xcoord = np.array([xrng[0]])
     else:
         xcoord = np.arange(xrng[0], xrng[1] + dx, dx)
-    # and for z 
+    # and for z
     if zrng[0] == zrng[1]:
         zcoord = np.array([zrng[0]])
     else:
@@ -373,7 +373,7 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
     npts = data[:, 1].size
     # construct analysis frequencies
     freq = np.arange(fmin, fmax + df, df)
-    # construct time vector for sliding window 
+    # construct time vector for sliding window
     w_time = np.arange(0, w_length, 1./Fs)
     npts_win = w_time.size
     npts_delay = int(w_delay * Fs)
@@ -388,10 +388,10 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
     # dim: [number w_time points, number frequencies]
     matrice_int = np.exp(2. * np.pi * 1j * np.dot(w_time[:, None], freq[:, None].T))
 
-    # initialize array for beamformer 
+    # initialize array for beamformer
     beamformer = np.zeros(n_param)
 
-    # calculate DFTs 
+    # calculate DFTs
     for ii in range(n_stats):
         toto = data[:, ii]
         # now loop over shots

@@ -26,3 +26,5 @@ MANIFEST
 # Ignore the egg installation folder.
 psysmon.egg-info/
 
+scoord.npy
+*.txt
