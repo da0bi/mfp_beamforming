@@ -13,7 +13,7 @@ Edited by Gerolf Vent <gvent@uni-potsdam.de>
 Rewritten and optimized for speed through e.g. vectorization of loops by
 daniel binder <daniel.binder@uni-potsdam.de>
 - following fcts optimized for speed:
-    - matchedfield_beamformer (some parameters removed and added)
+    - matchedfield_beamformer (some parameters removed and some added)
     - calculate_CSDM (fct not used anymore in matchedfield_beamformer)
     - annul_dominant_interferers (fct not used anymore in matchedfield_beamformer)
     - phase_matching (fct not used anymore in matchedfield_beamformer)
@@ -36,15 +36,20 @@ import warnings
 
 def nlinear_freqs(fmin, fmax, df, linear_fraction, falpha):
     """
-    Calculate frequency range with increasing frequency steps for higher frequencies.
+    Calculation of beamforming sampling frequencies in the range [fmin, fmax] and an 
+    increasing frequency step width. Lower frequencies are sampled with a constant [df], 
+    while for the higher frequencies [df] is continuously increasing.
     :type fmin, fmax: float
-    :param fmin, fmax: frequency range for which the beamforming result is calculated
+    :param fmin, fmax: frequency range for which the beamforming result is calculated.
     :type df: float
-    :param df: optimum frequency step calculated for cmin and array aperture
-    :type linear_fraction: float
-    :param linear_fraction: starting fraction with constant frequency steps df (0-1)
-    :type falpha: float
-    :param falpha: frequency step df growth factor (0-1)
+    :param df: optimum frequency step calculated for cmin and array aperture.
+    :type linear_fraction: float (0-1)
+    :param linear_fraction: lower frequency range fraction sampled with the constant [df].
+    :type falpha: float (0-1)
+    :param falpha: [df] growth factor.
+    
+    .return: numpy.ndarray 
+        freq: sampling frequencies for beamforming
     """
     if linear_fraction is None or falpha is None:
 
@@ -76,11 +81,14 @@ def nlinear_freqs(fmin, fmax, df, linear_fraction, falpha):
 
 def calculate_CSDM(dft_array, neig, norm):
     """
-    Calculate CSDM matrix for beamforming.
+    Calculation of CSDM matrix for beamforming.
     :param dft_array: 2-Dim array containing DFTs of all stations
-        and for multiple time windows. dim: [n_stations, n_windows]
+        and for multiple time windows. dim: [n_stations, n_windows].
     :param neig: Number of eigenvalues to project out.
     :param norm: If True, normalize CSDM matrix.
+
+    :return: numpy.ndarray (dim: [n_stats, n_stats])
+        csdm: the cross-spectral-density matrix
     """
     # CSDM matrix
     #CSDM = np.dot(dft_array, dft_array.conj().T)
@@ -114,7 +122,7 @@ def annul_dominant_interferers(CSDM, neig, data):
     :param data: the data which was used to calculate the CSDM. The projector is
         applied to it in order to cancel the strongest interferer.
 
-    :return: numpy.ndarray
+    :return: numpy.ndarray (dim: [n_stats, n_stats])
         csdm: the new cross-spectral-density matrix calculated from the data after
         the projector was applied to eliminate the strongest source.
     """
@@ -137,14 +145,14 @@ def annul_dominant_interferers(CSDM, neig, data):
 
 def annul_dominant_interferers_all(CSDM_all, neig):
     """
-    Remove dominant eigenvectors from a stack of CSDM matrices.
-    :type CSDM_all: numpy.ndarray
-    :param CSDM_all: Cross-spectral density matrix stack (dim: [n_freq, n_stats, n_stats])
-    :type neig: int
+    Removes dominant eigenvectors from a stack of CSDM matrices.
+    :type CSDM_all: numpy.ndarray (dim: [n_freq, n_stats, n_stats])
+    :param CSDM_all: Cross-spectral density matrix stack.
+    :type neig: int (>=0)
     :param neig: Number of dominant eigenvectors (noise sources) to remove
 
-    :return: numpy.ndarray
-        Projected CSDM_all matrix satck (dim: [n_freq, n_stats, n_stats])
+    :return: numpy.ndarray (dim: [n_freq, n_stats, n_stats])
+        Projected CSDM_all matrix satck.
     """
     if neig <= 0:
         return CSDM_all
@@ -171,14 +179,17 @@ def annul_dominant_interferers_all(CSDM_all, neig):
 
 def phase_matching(replica, CSDM, processor):
     """
-    Do phase matching of the replica vector with the CSDM matrix.
+    Does phase matching of the replica vector with the CSDM matrix.
+    :type replica: numpy.ndarray (dim: [n_stats, n_param])
     :param replica: 2-D array containing the replica vectors of all parameter
-        combinations (dim: [n_stats, n_param])
-    :param CSDM: 2-D array CSDM matrix (dim: [n_stats, n_stats])
-    :param processor: Processor used for phase matching. bartlett or adaptive.
+        combinations.
+    :type CSDM: numpy.ndarray (dim: [n_stats, n_stats])
+    :param CSDM: 2-D array CSDM matrix.
+    :type processor: string ('bartlett' or 'adaptive')
+    :param processor: Processor used for phase matching.
 
-    :return: numpy.ndarray
-        beam (dim: [n_param])
+    :return: numpy.ndarray (dim: [n_param])
+        the beam.
     """
 
     if processor == "adaptive":
@@ -204,15 +215,18 @@ def phase_matching(replica, CSDM, processor):
 
 def phase_matching_fast(replica, CSDM, processor):
     """
-    Do phase matching of the replica vector with the CSDM matrix in a faster way.
-    (tmp calculated by extremly optimized BLAS matrix multiplication)
+    Does phase matching of the replica vector with the CSDM matrix in a faster way.
+    tmp is calculated by highly optimized BLAS matrix multiplication subroutine. 
+    :type replica: numpy.ndarray (dim: [n_stats, n_param])
     :param replica: 2-D array containing the replica vectors of all parameter
-        combinations (dim: [n_stats, n_param])
-    :param CSDM: 2-D array CSDM matrix (dim: [n_stats, n_stats])
-    :param processor: Processor used for phase matching. bartlett or adaptive.
+        combinations.
+    :type CSDM: numpy.ndarray (dim: [n_stats, n_stats])
+    :param CSDM: 2-D array CSDM matrix.
+    :type processor: string ('bartlett' or 'adaptive')
+    :param processor: Processor used for phase matching.
 
-    :return: numpy.ndarray
-        beam (dim: [n_param])
+    :return: numpy.ndarray (dim: [n_param])
+        the beam.
     """
 
     if processor == "adaptive":
@@ -235,16 +249,19 @@ def phase_matching_fast(replica, CSDM, processor):
 
 def phase_matching_fast_all(replica_all, CSDM_all, processor):
     """
-    Do phase matching of the replica vector with the CSDM matrix in a faster way.
-    (tmp calculated by extremly optimized BLAS matrix multiplication)
-    Applies fast phase matching to all frequencies - no frequency loop necessary.
+    Does phase matching of the replica vectors with the CSDM matrix in a faster way,
+    and for all frequencies - avoids frequency loop. tmp calculated by highly optimized 
+    BLAS matrix multiplication subroutine.
+    :type replica_all: numpy.ndarray (dim: [n_freq, n_stats, n_param])
     :param replica_all: 2-D array containing the replica vectors of all parameter
-        combinations and all frequencies(dim: [n_freq, n_stats, n_param])
-    :param CSDM_all: 2-D array CSDM matrix (dim: [n_freq, n_stats, n_stats])
-    :param processor: Processor used for phase matching. bartlett or adaptive.
-    
-    :return: numpy.ndarray
-        the beams for all frequencies (dim: [n_freq, n_param])
+        combinations and all frequencies.
+    :type CSDM_all: numpy.ndarray (dim: [n_freq, n_stats, n_stats])
+    :param CSDM_all: 2-D array CSDM matrix.
+    :type processor: string ('bartlett' or 'adaptive')
+    :param processor: Processor used for phase matching.
+
+    :return: numpy.ndarray (dim: [n_freq, n_param])
+        the beams for all frequencies.
     """
 
     tmp = np.einsum(
@@ -469,7 +486,8 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
     # precompute omega
     omega = 2 * np.pi * freq
 
-    # precompute geometric delay term (distances x slownesses)
+    # precompute geometric delay term
+    # element-wise broadcasting (distances x slownesses)
     dist_sg = dist * sg
 
     if precompute_replica:
