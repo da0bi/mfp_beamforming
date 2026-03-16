@@ -163,8 +163,10 @@ def plot_bf_array(mean_bf_array, semb_max, semb_min, xcoord, ycoord, scoord, xym
 # DEFINE PARAMETERS
 ###################
 # Define path for loading the data
-directory = Path("/home/db/Projects/APO_Monitoring_2023/10_psysmon/output/mfp_beamforming_test")
-proc_folder = "smi-up.db-psysmon-apo23-mfp_beamforming_20260310_153534_385490-time_window_looper"
+directory = Path("/home/db/Projects/APO_Monitoring_2023/10_psysmon/output/mfp_beamforming")
+#proc_folder = "old_looping_mfp_beamform_code"
+#proc_folder = "new_opt_mfp_beamform_code"
+proc_folder = "test_run12"
 sfolder = "beam"
 directory = directory / proc_folder / sfolder
 # Define station, component, network and channel for the data to load
@@ -197,8 +199,8 @@ scoord = np.array([
 shp_path = "/home/db/Projects/APOlsen/01_QGis/03_APO_shp/APO_utm.shp"
 
 # set semblance limits for bf plotting
-semb_max = 0.5
-semb_min = 0.4
+semb_max = 0.4 
+semb_min = 0.2
 
 ##########################################
 # LOAD DATA, CALCULATE AND PLOT BEAMFORMER

@@ -139,23 +139,28 @@ class MfpBeamform(psysmon.core.packageNodes.LooperCollectionChildNode):
             slow = self.process_params['slow']
             fmin = self.process_params['fmin']
             fmax = self.process_params['fmax']
-            cmin = self.process_params['cmin']
+            df = self.process_params['df']
             freq_linear = self.process_params['freq_linear']
+            freq_decimation = self.process_params['freq_decimation']
             Fs = self.process_params['Fs']
             w_length = self.process_params['w_length']
             w_delay = self.process_params['w_delay']
             processor = self.process_params['processor']
             neig = self.process_params['neig']
             norm = self.process_params['norm']
-            precompute_replica = self.process_params['precompute_replica']
+            vectorize_freq = self.process_params['vectorize_freq']
             preallocate_replica = self.process_params['preallocate_replica']
 
             # Call the mfp_beamforming function here.
             xcoord, ycoord, zcoord, c, beamformer = bf.matchedfield_beamformer(
-                tr_array, scoord, xrng, yrng, zrng, dx, dy, dz, svrng,
-                ds, slow, fmin, fmax, cmin, freq_linear, Fs, w_length, w_delay,
-                processor, neig, norm=norm, precompute_replica=precompute_replica,
-                preallocate_replica=preallocate_replica
+                tr_array, 
+                scoord, 
+                xrng, yrng, zrng, dx, dy, dz, 
+                svrng, ds, slow, 
+                fmin, fmax, df, freq_linear, freq_decimation, 
+                Fs, w_length, w_delay,
+                processor, neig, norm, 
+                vectorize_freq, preallocate_replica
                 )
 
             # Store the beam data in the beam dictionary.
