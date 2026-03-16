@@ -21,7 +21,15 @@
     "slow": true,
     "fmin": 10,
     "fmax": 70,
+    "df": null,
+    "freq_linear": false,
+    "freq_decimation": 5,
     "Fs": 400,
     "w_length": 30,
-    "w_delay": 15
+    "w_delay": 15,
+    "processor": "bartlett",
+    "neig":2,
+    "norm": true,
+    "vectorize_freq":true,
+    "preallocate_replica":false
 }
