@@ -28,3 +28,5 @@ psysmon.egg-info/
 
 scoord.npy
 *.txt
+
+.~lock.*
