@@ -249,7 +249,7 @@ def plot_bf_array(mean_bf_array, semb_max, semb_min, xcoord, ycoord, scoord, xym
 ###################
 # Define path for loading the data
 directory = Path("/home/db/Projects/APO_Monitoring_2023/10_psysmon/output/mfp_beamforming")
-proc_folder = "smi-up.db-psysmon-apo23-mfp_beamforming_20260317_100521_790644-time_window_looper"
+proc_folder = "test_run10"
 sfolder = "beam"
 directory = directory / proc_folder / sfolder
 # Define station, component, network and channel for the data to load
@@ -303,6 +303,7 @@ for fpath in sorted(directory.iterdir()):
         t = list(bf_data.keys())[0]
         xcoord = bf_data[t]['xcoord']
         ycoord = bf_data[t]['ycoord']
+        
         # parse string to datetime
         # adjust the format string for the title
         t_dt = datetime.strptime(t, "%Y-%m-%dT%H:%M:%S")

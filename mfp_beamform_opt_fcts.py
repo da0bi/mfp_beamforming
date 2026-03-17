@@ -27,7 +27,7 @@ daniel binder <daniel.binder@uni-potsdam.de>
     - annul_dominant_interferers_all
     - phase_matching_fast
     - phase_matching_fast_all
-    
+
 - deleted fcts:
     - plwave_beamformer
 
@@ -47,20 +47,21 @@ def lin_log_freqs(fmin, fmax, df):
     :param fmin, fmax: frequency range for which the beamforming result is calculated.
     :type df: float
     :param df: optimum frequency step calculated by array phase criterion.
-    
-    .return: numpy.ndarray 
+
+    :return: numpy.ndarray 
         freq: reduced sampling frequencies for beamforming
     """
+    
     # compute fraction of frequency range with uniform df, and df growth parameter
     r = fmax / fmin
     linear_fraction = min(0.5, round(2 / r, 1))
     falpha = min(0.15, 0.02 * r)
 
-    # uniform df
+    # uniform df for lower frequencies
     f_linear_end = fmin + linear_fraction * (fmax - fmin)
     f_linear = np.arange(fmin, f_linear_end + df, df)
 
-    # non-uniform (logarithmic) df
+    # non-uniform, logarithmic growing df for higher frequencies
     f0 = f_linear[-1]
 
     n_log = int(np.log(fmax / f0) / np.log(1 + falpha))
@@ -85,29 +86,35 @@ def nlinear_freqs(fmin, fmax, df):
     :param fmin, fmax: frequency range for which the beamforming result is calculated.
     :type df: float
     :param df: optimum frequency step calculated for cmin and array aperture.
-    
-    .return: numpy.ndarray 
+
+    :return: numpy.ndarray 
         freq: reduced sampling frequencies for beamforming
     """
+
     # compute linear sampling frequencies fraction and df growth parameter
     r = fmax / fmin
     linear_fraction = min(0.5, round(2 / r, 1))
     falpha = min(0.15, 0.02 * r)
-    
+
     # uniform df 
     f_linear_end = fmin + linear_fraction * (fmax - fmin)
     f_linear = np.arange(fmin, f_linear_end + df, df)
     df = df * (1 + falpha)
-    
+
     # non-uniform (growing) df
     f_nl = [(f_linear[-1] + df)]
+
     while f_nl[-1] < fmax:
+
         df = df * (1 + falpha)
         f = f_nl[-1] + df
-        
+
         if f > fmax:
+
             break
+
         f_nl.append(f)
+
     f_nl = np.array(f_nl)
     freq = np.concatenate((f_linear, f_nl))
     freq = np.round(freq, 1)
@@ -127,6 +134,7 @@ def calculate_CSDM(dft_array, neig, norm):
     :return: numpy.ndarray (dim: [n_stats, n_stats])
         csdm: the cross-spectral-density matrix
     """
+
     # CSDM matrix
     #CSDM = np.dot(dft_array, dft_array.conj().T)
     #CSDM = dft_array @ dft_array.conj().T
@@ -137,10 +145,12 @@ def calculate_CSDM(dft_array, neig, norm):
 
     # annul dominant source
     if neig > 0:
+
         CSDM = annul_dominant_interferers(CSDM, neig, dft_array)
 
     # normalize
     if norm:
+
         #CSDM /= np.linalg.norm(CSDM)
         CSDM /= np.sqrt(np.sum(np.abs(CSDM)**2))
 
@@ -163,9 +173,11 @@ def annul_dominant_interferers(CSDM, neig, data):
         csdm: the new cross-spectral-density matrix calculated from the data after
         the projector was applied to eliminate the strongest source.
     """
+
     if neig <= 0:
+
         return CSDM
-    
+
     # Hermitian eigendecomposition
     eigvals, eigvecs = np.linalg.eigh(CSDM)
 
@@ -192,7 +204,9 @@ def annul_dominant_interferers_all(CSDM_all, neig):
     :return: numpy.ndarray (dim: [n_freq, n_stats, n_stats])
         Projected CSDM_all matrix satck.
     """
+
     if neig <= 0:
+
         return CSDM_all
 
     # SVD for all frequencies
@@ -231,6 +245,7 @@ def phase_matching(replica, CSDM, processor):
     """
 
     if processor == "adaptive":
+
         CSDM = np.linalg.inv(CSDM)
 
     # quadratic form for all parameters
@@ -243,9 +258,11 @@ def phase_matching(replica, CSDM, processor):
     )
 
     if processor == "bartlett":
+
         beam = np.abs(beam)
 
     elif processor == "adaptive":
+
         beam = np.abs(1.0 / beam)
 
     return beam
@@ -268,6 +285,7 @@ def phase_matching_fast(replica, CSDM, processor):
     """
 
     if processor == "adaptive":
+
         CSDM = np.linalg.inv(CSDM)
 
     # apply CSDM
@@ -277,9 +295,11 @@ def phase_matching_fast(replica, CSDM, processor):
     beam = np.sum(replica.conj() * tmp, axis=0)
 
     if processor == "bartlett":
+
         beam = np.abs(beam)
 
     elif processor == "adaptive":
+
         beam = np.abs(1.0 / beam)
 
     return beam
@@ -301,6 +321,13 @@ def phase_matching_fast_all(replica_all, CSDM_all, processor):
     :return: numpy.ndarray (dim: [n_freq, n_param])
         the beams for all frequencies.
     """
+    '''
+    # BLAS-backed batch matmul
+    tmp = np.matmul(CSDM_all, replica_all)
+
+    # dot product over station dimension
+    beam_all = np.sum(replica_all.conj() * tmp, axis=1)
+    '''
 
     tmp = np.einsum(
         "fsq,fqp->fsp",
@@ -317,14 +344,16 @@ def phase_matching_fast_all(replica_all, CSDM_all, processor):
     )
 
     if processor == "adaptive":
+
         beam_all = 1.0 / beam_all
 
     if processor == "bartlett":
+
         beam_all = np.abs(beam_all)
 
     return beam_all
 
-    
+
 def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, ds,
             slow, fmin, fmax, df, freq_linear, freq_decimation, Fs, w_length, w_delay, 
             processor, neig, norm, vectorize_freq, preallocate_replica):
@@ -338,7 +367,7 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
     :type data: numpy.ndarray
     :param data: time series of used stations (dim: [number of samples, number of stations])
     :type scoord: numpy.ndarray
-    :param scoord: UTM coordinates of stations (dim: [number of stations, 2])
+    :param scoord: UTM coordinates [easting, northing] of stations (dim: [number of stations, 2])
     :type xrng, yrng, zrng: tuple
     :param xrng, yrng, zrng: parameters for spatial grid search. Grid ranges
         from xrng[0] to xrng[1], yrng[0] to yrng[1], and zrng[0] to zrng[1].
@@ -366,10 +395,10 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
         are accounted for by bandwidth weighting. if not None 'freq_linear' parameter is set to True.
         Better alternative to a growing df for higher frequencies. A too large df can introduce phase
         decorrelation - incoherent beam patterns for neighbouring frequencies, due to phase changes > pi/2.
-        how too choose: array aperture      freq_decimation factor
-                        small (< 1km)               2-3
-                        medium (~3km)               3-6
-                        very large (>10km)          6-10
+        potential starting values:  array aperture      freq_decimation factor
+                                    small (< 1km)               2-3
+                                    medium (~3km)               3-6
+                                    very large (>10km)          6-10
         beam patterns vary slowly with frequency. theoretically the decimation factor is limited so that 
         the effective frequency step remains smaller than the maximum step allowed by the array phase stability 
         criterion: df_max = 1 / (4 * array_aperture * max_slowness), 
@@ -411,7 +440,7 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
 
     # number of stations
     n_stats = data.shape[1]
-    
+
     # -------------------------------------------------
     # spatial grid
     # -------------------------------------------------
@@ -453,16 +482,16 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
     # squared distance, and distance
     dist2 = xs2 + ys2 + grid_norm2 - 2 * dot
     dist = np.sqrt(np.maximum(dist2, 0)) # avoids slightly negative distances due to floating point rounding
-    
+
     # -------------------------------------------------
     # compute frequencies to process
     # -------------------------------------------------
-        
+
     # if no df defined, calculate through array phase stability criterion:
     # cmin / (4 * L_array)
     # cmin....minimum phase velocity [m/s] -> (1/max_slowness)*1000
     # L_array...array aperture [m]
-    
+
     if df is None:
 
         # calculate optimum frequency step over cmin and array aperture estimation (L_array)
@@ -470,7 +499,7 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
         dy = np.max(scoord[:,1]) - np.min(scoord[:,1])
 
         L_array = max(dx, dy)
-    
+
         # compute minimum phase velocity 
         if slow:
             cmin = (1 / np.max(svrng)) * 1000
@@ -484,37 +513,41 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
         df = round(df * 10) / 10
 
     else:
-        
+
         df= round(df * 10) / 10
-        
+
     # compute bandwidth and number of sampling frequencies based on a constant df
     bw = fmax - fmin
     nf = int(round(bw / df)) + 1
 
     # activate freq_linear if freq_decimation is applied
     if freq_decimation is not None:
-        
+
         freq_linear = True
-    
+
     # compute sampling frequencies 
     if freq_linear or nf <= 201:
 
+        # calculate sampling frequencies with uniform df
         freq = np.arange(fmin, fmax + df, df)
-        
+
         if freq_decimation is not None and nf > 201:
 
+            # decimate frequenices by defined factor
             freq = freq[::freq_decimation]
-            
+
+            # calculate non-uniform df for final beamformer normalization
             df = np.gradient(freq)
-            
+
     else:
 
+        # construct sampling frequencies with growing df for higher frequencies
         #freq = nlinear_freqs(fmin, fmax, df)
         freq = lin_log_freqs(fmin, fmax, df)
-       
-        # calculate actual df for final beamformer normalization
+
+        # calculate non-uniform df for final beamformer normalization
         df = np.gradient(freq)
-          
+
     # -------------------------------------------------
     # sliding window preparation
     # -------------------------------------------------
@@ -533,7 +566,7 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
 
     data_win = data[idx, :]
     data_win = np.transpose(data_win, (1, 2, 0))
-    
+
     # -------------------------------------------------
     # precompute DFT matrices for all frequencies
     # -------------------------------------------------
@@ -547,13 +580,13 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
     ) / npts_win
 
     #vect_data = np.conj(vect_data / np.abs(vect_data))
-    
+
     # if vect_data == 0, division produces NaN
     # normalize DFT phase safely
     mag = np.abs(vect_data)
     mag[mag == 0] = 1
     vect_data = np.conj(vect_data / mag)
-    
+
     # --------------------------------------------------------------
     # precompute cross spectral density matrices for all frequencies
     # --------------------------------------------------------------
@@ -576,7 +609,7 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
 
     if processor == "adaptive":
         CSDM_all = np.linalg.inv(CSDM_all)
-    
+
     # -------------------------------------------------
     # phase matching & beamforming
     # -------------------------------------------------
@@ -584,36 +617,38 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
     # precompute omega
     omega = 2 * np.pi * freq
 
-    # precompute geometric delay term
-    # element-wise broadcasting (distances x slownesses)
+    # precompute geometric delay term through element-wise broadcasting of distances and slownesses
     dist_sg = dist * sg
 
     if vectorize_freq:
         # ------------------------------------------------------------
-        # last remaining loop over all frequencies is also vectorized.
+        # vectorized form of last remaining loop over all frequencies.
         # replicas and beams are computed for all frequencies at once
         # to then build the beamformer from all the calculated beams.
         # ------------------------------------------------------------
 
         replica_all = np.exp(-1j * omega[:, None, None] * dist_sg[None, :, :])
 
-        # normalize steering vectors - not necessary, steering vectors already have identical norms
+        # normalize steering vectors
         replica_all /= np.linalg.norm(replica_all, axis=1, keepdims=True)
 
         beam_all = phase_matching_fast_all(replica_all, CSDM_all, processor)
-        
-        # normalize (average) all calculated beams to build beamformer         
+
+        # normalize (average) all calculated beams to build beamformer
         if np.isscalar(df):
+
             # uniform df 
             beamformer = np.mean(beam_all, axis=0)
-        
+
         else:
-            # non-uniform df - bandwidth-weighted averaging is necessary  
-            beamformer = np.sum(beam_all * df[:,None], axis=0) 
-            
+
+            # non-uniform df - bandwidth-weighted averaging is necessary
+            beamformer = np.sum(beam_all * df[:,None], axis=0)
+
             beamformer /= np.sum(df)
-        
+
     else:
+
         # -----------------------------------------------------------------
         # loop over frequencies and compute replicas and beams individually
         # -----------------------------------------------------------------
@@ -628,12 +663,16 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
 
         # loop over frequencies and perform beamforming
         for ll in range(freq.size):
+
             # compute replica vectors from phases
             if preallocate_replica:
+
                 # reusing the memory of the preallocated replica
                 # -> reduces memory overhead, but can be slower
                 np.exp(-1j * omega[ll] * dist_sg, out=replica)
+
             else:
+
                 # allocating replica for every loop run
                 # -> can be faster if there is no memory issue
                 replica = np.exp(
@@ -641,30 +680,34 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
                     * omega[ll] 
                     * dist_sg
                     )
-            
+
             # normalize and reshape replica matrix 
             replica /= np.linalg.norm(replica, axis=0)
             replica = np.reshape(replica, (n_stats, n_param))
-            
+
             # calculate cross-spectral density matrix
             # dim: [number of stations X number of stations]
             CSDM = CSDM_all[ll]
 
             if np.isscalar(df):
-                # uniform df        
+
+                # uniform df
                 beam_all += phase_matching_fast(replica, CSDM, processor)
-            
+
             else:
+
                 # non-uniform df - beam is multiplied by corresponding df which is the first 
                 # necessary step for bandwidth-weighted averaging to build the final beamformer 
                 beam_all += phase_matching_fast(replica, CSDM, processor) * df[ll]
 
-        # normalize all calculated beams to build beamformer                     
+        # normalize all calculated beams to build beamformer
         if np.isscalar(df):
+
             # uniform df
             beamformer = beam_all / freq.size
-            
+
         else:
+
             # non-uniform df - all beams are normalized by the df-sum as the second and 
             # final step of the bandwidth-weighted averaging to build the final beamformer  
             beamformer = beam_all / np.sum(df)
