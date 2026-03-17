@@ -10,7 +10,10 @@ https://github.com/fablindner/glseis/blob/master/array_analysis.py
 Edited by Gerolf Vent <gvent@uni-potsdam.de>
 
 2026-03-11:
-Rewritten and optimized for speed through e.g. vectorization of loops by
+Rewritten and optimized for speed through e.g. 
+- vectorization of loops 
+- reduction of sampling frequencies
+by
 daniel binder <daniel.binder@uni-potsdam.de>
 - following fcts optimized for speed:
     - matchedfield_beamformer (some parameters removed and some added)
@@ -423,7 +426,7 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
         s = 1. / (s * 1.e6)
 
     # parameter grid
-    X, Y, Z, S = np.meshgrid(xcoord, ycoord, zcoord, s, indexing="xy")
+    X, Y, Z, S = np.meshgrid(xcoord, ycoord, zcoord, s, indexing="ij")
 
     xg = X.ravel(order="F")
     yg = Y.ravel(order="F")
@@ -484,18 +487,16 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
         
         df= round(df * 10) / 10
         
-    # compute bandwidth and number of sample frequencies based on a constant df
-
+    # compute bandwidth and number of sampling frequencies based on a constant df
     bw = fmax - fmin
     nf = int(round(bw / df)) + 1
 
-    # compute frequencies
-    
+    # activate freq_linear if freq_decimation is applied
     if freq_decimation is not None:
         
         freq_linear = True
     
-    
+    # compute sampling frequencies 
     if freq_linear or nf <= 201:
 
         freq = np.arange(fmin, fmax + df, df)
@@ -546,6 +547,7 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
     ) / npts_win
 
     #vect_data = np.conj(vect_data / np.abs(vect_data))
+    
     # if vect_data == 0, division produces NaN
     # normalize DFT phase safely
     mag = np.abs(vect_data)
@@ -563,7 +565,7 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
         optimize=True
     )
     '''
-    # use fast BLAS matrix multiply for CSDM
+    # use fast BLAS matrix multiplication for CSDM
     CSDM_all = vect_data @ vect_data.conj().transpose(0,2,1)
 
     if neig > 0:
@@ -590,7 +592,7 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
         # ------------------------------------------------------------
         # last remaining loop over all frequencies is also vectorized.
         # replicas and beams are computed for all frequencies at once
-        # to then build the beamformer.
+        # to then build the beamformer from all the calculated beams.
         # ------------------------------------------------------------
 
         replica_all = np.exp(-1j * omega[:, None, None] * dist_sg[None, :, :])
@@ -629,11 +631,11 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
             # compute replica vectors from phases
             if preallocate_replica:
                 # reusing the memory of the preallocated replica
-                # reduces memory overhead, but can be slower
+                # -> reduces memory overhead, but can be slower
                 np.exp(-1j * omega[ll] * dist_sg, out=replica)
             else:
                 # allocating replica for every loop run
-                # can be faster if there is no memory issue
+                # -> can be faster if there is no memory issue
                 replica = np.exp(
                     -1j 
                     * omega[ll] 
@@ -667,13 +669,13 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
             # final step of the bandwidth-weighted averaging to build the final beamformer  
             beamformer = beam_all / np.sum(df)
 
-    # final beamformer reshape
+    # final beamformer build
     beamformer = beamformer.reshape(
-    ycoord.size,
     xcoord.size,
+    ycoord.size,
     zcoord.size,
     s.size,
     order="F"
     )
 
-    return ycoord, xcoord, zcoord, s*1000., beamformer
+    return xcoord, ycoord, zcoord, s*1000., beamformer
