@@ -168,20 +168,11 @@ def max_xy_coord(arr, xcoord, ycoord):
 
 
 def plot_bf_array(
-    mean_bf_array,
-    semb_max,
-    semb_min,
-    xcoord,
-    ycoord,
-    scoord,
-    xymax,
-    shp_path,
-    ortho_path,
-    title,
-    png_name,
-    png_dir,
-    background, # options: "shp", "ortho", "both", "none"
-    bf_crs
+    mean_bf_array, semb_max, semb_min,
+    xcoord, ycoord, scoord,
+    title, png_name, png_dir,
+    shp_path, ortho_path, xymax, 
+    background, bf_crs
 ):
     """
     Plot the mean beamformer array on top of optional backgrounds.
@@ -197,18 +188,18 @@ def plot_bf_array(
         Coordinates of beamformer grid. (dim: [nx], [ny])
     scoord : numpy.ndarray
         Station coordinates. (dim: [n_stations, 2])
-    xymax : list or None
-        List of tuples [(t, x_max, y_max), ...] of beamformer maxima. (optional)
-    shp_path : str
-        Path to shapefile. (optional)
-    ortho_path : str
-        Path to ortho image. (optional)
     title : str
         Plot title.
     png_name : str
         Output PNG file name.
     png_dir : str or Path
         Directory to save PNG.
+    shp_path : str or None
+        Path to shapefile. (optional)
+    ortho_path : str or None
+        Path to ortho image. (optional)
+    xymax : list or None
+        List of tuples [(t, x_max, y_max), ...] of beamformer maxima. (optional)
     background : str
         Which background to show: "shp", "ortho", "both", "none".
     bf_crs : str
@@ -248,10 +239,10 @@ def plot_bf_array(
             origin="upper",
         )
 
-    # -------------------------------
-    # Optional masking of  beamformer
-    # -------------------------------
-    if background in ("ortho", "both"):
+    # ------------------------------
+    # Optional masking of beamformer
+    # ------------------------------
+    if background in ("ortho", "both") and ortho_path is not None:
         
         semb_min = 0.35
         masked_bf = np.ma.masked_where(mean_bf_array < semb_min, mean_bf_array)
@@ -260,15 +251,15 @@ def plot_bf_array(
         
         masked_bf = mean_bf_array
 
-    # -----------------------------
+    # -------------------------------
     # Plot beamformer (original grid)
-    # -----------------------------
+    # -------------------------------
     im = ax.imshow(
         masked_bf.T,  # transpose so (y, x)
         origin="lower",
         extent=[xcoord.min(), xcoord.max(), ycoord.min(), ycoord.max()],
         cmap="inferno",
-        alpha=0.5 if background in ("ortho", "both") else 1.0,
+        alpha=0.5 if background in ("ortho", "both") and ortho_path is not None else 1.0,
         aspect="equal",
     )
     im.set_clim(semb_min, semb_max)
@@ -402,9 +393,11 @@ for fpath in sorted(directory.iterdir()):
         png_dir.mkdir(exist_ok=True)
 
         plot_bf_array(mean_bf_array, semb_max, semb_min,
-                      xcoord, ycoord, scoord, xymax,
-                      shp_path, ortho_path,
+                      xcoord, ycoord, scoord,
                       title, png_name, png_dir,
+                      shp_path=shp_path, 
+                      ortho_path=ortho_path,
+                      xymax=xymax,
                       background="ortho", # options: "shp", "ortho", "both", "none"
                       bf_crs="EPSG:32627"
                       )
