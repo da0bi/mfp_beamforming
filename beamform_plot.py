@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import os
@@ -9,6 +9,15 @@ from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
 import geopandas as gpd
+
+import rasterio
+from rasterio.crs import CRS
+from rasterio.merge import merge
+from rasterio.windows import from_bounds
+
+from pyproj import CRS
+from scipy.interpolate import RegularGridInterpolator
+
 import imageio.v2 as imageio
 
 
@@ -27,7 +36,7 @@ def imp_shelve_file(directory, file_to_load):
         'beamformer': beamformer
         }
         
-    :return: beam_data dicitonary
+    :return: beam_data dictionary
     """
     
     filepath_to_load = os.path.join(
@@ -148,100 +157,159 @@ def max_xy_coord(arr, xcoord, ycoord):
     return max_x, max_y
 
 
-def plot_bf_array(mean_bf_array, semb_max, semb_min, xcoord, ycoord, scoord, xymax, 
-                  shp_path, title, png_name, png_dir):
+def plot_bf_array(
+    mean_bf_array,
+    semb_max,
+    semb_min,
+    xcoord,
+    ycoord,
+    scoord,
+    xymax,
+    shp_path,
+    ortho_path,
+    title,
+    png_name,
+    png_dir,
+    background, # options: "shp", "ortho", "both", "none"
+    bf_crs
+):
     """
-    Plots the mean beamformer array of each bf_data (*db) file. 
-    Plots the locations of the array's maximum values for each timestep.
-    Plots the glacier outline.
-    
-    :type mean_bf_array: numpy.ndarray
-    :param mean_bf_array: the mean beamformer
-    :type semb_max, semb_min: float
-    :param semb_max, semb_min: maximum and minimum semblance values to plot
-    :type xcoord, ycoord: list
-    :param xcoord, ycoord: xy-coordinates of the array   
-    :type scoord: list
-    :param scoord: xy-coordinates of the seismic stations
-    :type xymax: list
-    :param xymax: list of x, y coordinates of the max semblance value for each timestamp.
-    :type shp_path: string
-    :param shp_path: path to glacier outline shapefile
-    :type title: string
-    :param title: plot title
-    :type png_name: string
-    :param png_name: name for saving png file
-    :type png_dir: string
-    :param png_dir: directory path for saving png file
+    Plot the mean beamformer array on top of optional shapefile and/or ortho background.
+    Beamformer is NOT resampled — plotted using its original xcoord/ycoord grid.
+
+    Parameters
+    ----------
+    mean_bf_array : np.ndarray
+        2D beamformer array (ny, nx)
+    semb_max, semb_min : float
+        Max and min semblance values for plotting
+    xcoord, ycoord : np.ndarray
+        Coordinates of beamformer grid
+    scoord : np.ndarray
+        Station coordinates (n_stations, 2)
+    xymax : list
+        List of tuples [(t, x_max, y_max), ...] of beamformer maxima
+    shp_path : str
+        Path to shapefile (optional)
+    ortho_path : str
+        Path to ortho image (optional)
+    title : str
+        Plot title
+    png_name : str
+        Output PNG file name
+    png_dir : str or Path
+        Directory to save PNG
+    background : str
+        Which background to show: "shp", "ortho", "both", "none"
     """
-    
-    # get station coordinates    
+
     xs = scoord[:, 0]
     ys = scoord[:, 1]
 
-    # load apo shapefile
-    gdf = gpd.read_file(shp_path)
-
-    # initiate figure
     fig, ax = plt.subplots(figsize=(10, 8))
-    
-    # plot beamformer array
+
+    # -----------------------------
+    # Plot background
+    # -----------------------------
+    if background in ("shp", "both") and shp_path is not None:
+        
+        gdf = gpd.read_file(shp_path)
+        gdf.plot(ax=ax, facecolor="none", edgecolor="black", linewidth=1)
+
+    if background in ("ortho", "both") and ortho_path is not None:
+        
+        with rasterio.open(ortho_path) as src:
+            ortho = np.transpose(src.read([1, 2, 3]), (1, 2, 0))
+            bounds = src.bounds
+            raster_crs = src.crs
+        
+        # CRS check
+        bf_crs_obj = CRS.from_string(bf_crs)
+        if raster_crs != bf_crs_obj:
+            raise ValueError(
+                f"CRS mismatch:\nBeamformer CRS: {bf_crs_obj}\nRaster CRS: {raster_crs}"
+            )
+        
+        ax.imshow(
+            ortho,
+            extent=[bounds.left, bounds.right, bounds.bottom, bounds.top],
+            origin="upper",
+        )
+
+    # -------------------------------
+    # Optional masking of  beamformer
+    # -------------------------------
+    if background in ("ortho", "both"):
+        
+        semb_min = 0.35
+        masked_bf = np.ma.masked_where(mean_bf_array < semb_min, mean_bf_array)
+        
+    else:
+        
+        masked_bf = mean_bf_array
+
+    # -----------------------------
+    # Plot beamformer (original grid)
+    # -----------------------------
     im = ax.imshow(
-    mean_bf_array.T, # imshow expects (y, x) 
-    origin="lower",
-    extent=[
-        xcoord.min(), xcoord.max(),
-        ycoord.min(), ycoord.max()
-    ],
-    cmap="inferno",
-    aspect="equal"
+        masked_bf.T,  # transpose so (y, x)
+        origin="lower",
+        extent=[xcoord.min(), xcoord.max(), ycoord.min(), ycoord.max()],
+        cmap="inferno",
+        alpha=0.5 if background in ("ortho", "both") else 1.0,
+        aspect="equal",
     )
-    
-    # plot formating
     im.set_clim(semb_min, semb_max)
     plt.colorbar(im, ax=ax, label="Semblance")
 
-    # plot shapefile
-    gdf.plot(ax=ax, facecolor="none", edgecolor="white", linewidth=1)
-
-    # overlay station coordinates
+    # -----------------------------
+    # Overlay stations
+    # -----------------------------
     ax.scatter(
-        xs, 
+        xs,
         ys,
-        marker='^',
+        marker="^",
         c="white",
         s=50,
         edgecolor="black",
         label="Stations",
-        zorder=3
-        )
+        zorder=3,
+    )
 
-    # overlay max semblance value of each time step
+    # -----------------------------
+    # Overlay max beamformer locations
+    # -----------------------------
     if xymax is not None:
         t, xmax, ymax = zip(*xymax)
         ax.scatter(
-            xmax, 
+            xmax,
             ymax,
             c=range(len(t)),
-            cmap='inferno',
+            cmap="inferno",
             s=30,
             edgecolor="white",
-            label="max semblance",
-            zorder=3
+            label="Max semblance",
+            zorder=3,
         )
 
-    # plot formating and labeling
-    ax.set_xlim(xcoord.min()-75, xcoord.max()+75)
-    ax.set_ylim(ycoord.min()-75, ycoord.max()+75)
-
+    # -----------------------------
+    # Axes formatting
+    # -----------------------------
+    ax.set_xlim(xcoord.min() - 75, xcoord.max() + 75)
+    ax.set_ylim(ycoord.min() - 75, ycoord.max() + 75)
     ax.set_xlabel("Easting (m)")
     ax.set_ylabel("Northing (m)")
-
     ax.set_title(title)
 
-    # save the plot
+    # -----------------------------
+    # Save figure
+    # -----------------------------
+    png_dir = Path(png_dir)
+    png_dir.mkdir(exist_ok=True, parents=True)
     png_path = png_dir / f"{png_name}.png"
     plt.savefig(png_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
 
 
 ###################
@@ -281,9 +349,18 @@ scoord = np.array([
 # path to shapefile
 shp_path = "/home/db/Projects/APOlsen/01_QGis/03_APO_shp/APO_utm.shp"
 
+# path to orthophoto
+ortho_path = "/home/db/Projects/APOlsen/01_QGis/2016_SDFE_DEM/APO_dem/merged_utm_cropped.tif"
+
 # set semblance limits for bf plotting
 semb_max = 0.4 
 semb_min = 0.2
+
+# take random timestamp and extract the x and y coordinates
+t = list(imp_shelve_file(directory, sorted(directory.glob("*.db"))[0].name).keys())[0]
+xcoord = imp_shelve_file(directory, sorted(directory.glob("*.db"))[0].name)[t]['xcoord']
+ycoord = imp_shelve_file(directory, sorted(directory.glob("*.db"))[0].name)[t]['ycoord']
+
 
 ##########################################
 # LOAD DATA, CALCULATE AND PLOT BEAMFORMER
@@ -299,13 +376,10 @@ for fpath in sorted(directory.iterdir()):
         best_per_t, mean_bf_array, xymax = bf_opt_arr_per_t(bf_data, mode='max')
 
         # plotting
-        # take random timestamp and extract the x and y coordinates for plotting
-        t = list(bf_data.keys())[0]
-        xcoord = bf_data[t]['xcoord']
-        ycoord = bf_data[t]['ycoord']
         
         # parse string to datetime
         # adjust the format string for the title
+        t = list(bf_data.keys())[0]
         t_dt = datetime.strptime(t, "%Y-%m-%dT%H:%M:%S")
         t_next = t_dt + timedelta(hours=1)
         title = f"{t_dt:%Y-%m-%d} {t_dt:%H}:00 – {t_next:%H}:00"
@@ -315,18 +389,14 @@ for fpath in sorted(directory.iterdir()):
         png_dir = directory / "gif_frames"
         png_dir.mkdir(exist_ok=True)
 
-        plot_bf_array(mean_bf_array,
-                      semb_max,
-                      semb_min,
-                      xcoord,
-                      ycoord,
-                      scoord,
-                      xymax,
-                      shp_path,
-                      title,
-                      png_name,
-                      png_dir
+        plot_bf_array(mean_bf_array, semb_max, semb_min,
+                      xcoord, ycoord, scoord, xymax,
+                      shp_path, ortho_path,
+                      title, png_name, png_dir,
+                      background="ortho", # options: "shp", "ortho", "both", "none"
+                      bf_crs="EPSG:32627"
                       )
+
 
 # Create a GIF animation of the beamformer array over time
 gif_name = f"{t_dt:%Y-%m-%d}_animation.gif"

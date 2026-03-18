@@ -15,11 +15,12 @@ Rewritten and optimized for speed through e.g.
 - reduction of sampling frequencies
 by
 daniel binder <daniel.binder@uni-potsdam.de>
+
 - following fcts optimized for speed:
     - matchedfield_beamformer (some parameters removed and some added)
-    - calculate_CSDM (fct not used anymore in matchedfield_beamformer)
-    - annul_dominant_interferers (fct not used anymore in matchedfield_beamformer)
-    - phase_matching (fct not used anymore in matchedfield_beamformer)
+    - calculate_CSDM (fct not used anymore in the reworked matchedfield_beamformer)
+    - annul_dominant_interferers (fct not used anymore in the reworked matchedfield_beamformer)
+    - phase_matching (fct not used anymore in the reworked matchedfield_beamformer)
 
 - new fcts included:
     - lin_log_freqs
@@ -46,7 +47,7 @@ def lin_log_freqs(fmin, fmax, df):
     :type fmin, fmax: float
     :param fmin, fmax: frequency range for which the beamforming result is calculated.
     :type df: float
-    :param df: optimum frequency step calculated by array phase criterion.
+    :param df: optimum frequency step calculated by the array phase criterion.
 
     :return: numpy.ndarray 
         freq: reduced sampling frequencies for beamforming
@@ -96,12 +97,12 @@ def nlinear_freqs(fmin, fmax, df):
     linear_fraction = min(0.5, round(2 / r, 1))
     falpha = min(0.15, 0.02 * r)
 
-    # uniform df 
+    # uniform df for lower frequencies
     f_linear_end = fmin + linear_fraction * (fmax - fmin)
     f_linear = np.arange(fmin, f_linear_end + df, df)
     df = df * (1 + falpha)
 
-    # non-uniform (growing) df
+    # non-uniform and growing df for higher frequencies
     f_nl = [(f_linear[-1] + df)]
 
     while f_nl[-1] < fmax:
@@ -307,9 +308,9 @@ def phase_matching_fast(replica, CSDM, processor):
 
 def phase_matching_fast_all(replica_all, CSDM_all, processor):
     """
-    Does phase matching of the replica vectors with the CSDM matrix in a faster way,
-    and for all frequencies - avoids frequency loop. tmp calculated by highly optimized 
-    BLAS matrix multiplication subroutine.
+    Does phase matching of the replica vectors with the CSDM matrix faster and
+    for all frequencies at once. tmp calculated by highly optimized BLAS matrix 
+    multiplication subroutine.
     :type replica_all: numpy.ndarray (dim: [n_freq, n_stats, n_param])
     :param replica_all: 2-D array containing the replica vectors of all parameter
         combinations and all frequencies.
