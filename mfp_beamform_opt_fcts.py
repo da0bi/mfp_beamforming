@@ -44,13 +44,18 @@ def lin_log_freqs(fmin, fmax, df):
     Calculation of beamforming sampling frequencies in the range [fmin, fmax] and an 
     increasing frequency step width. Lower frequencies are sampled with a uniform df, 
     while for the higher frequencies df is continuously increasing.
-    :type fmin, fmax: float
-    :param fmin, fmax: frequency range for which the beamforming result is calculated.
-    :type df: float
-    :param df: optimum frequency step calculated by the array phase criterion.
+    
+    Parameters:
+    -----------
+    fmin, fmax : float
+        Frequency range for which the beamforming result is calculated.
+    df : float
+        Optimum frequency step calculated by the array phase criterion.
 
-    :return: numpy.ndarray 
-        freq: reduced sampling frequencies for beamforming
+    Returns:
+    --------
+    freq : numpy.ndarray 
+        Reduced sampling frequencies to do beamforming.
     """
     
     # compute fraction of frequency range with uniform df, and df growth parameter
@@ -83,13 +88,16 @@ def nlinear_freqs(fmin, fmax, df):
     Calculation of beamforming sampling frequencies in the range [fmin, fmax] and an 
     increasing frequency step width. Lower frequencies are sampled with a constant [df], 
     while for the higher frequencies [df] is continuously increasing.
-    :type fmin, fmax: float
-    :param fmin, fmax: frequency range for which the beamforming result is calculated.
-    :type df: float
-    :param df: optimum frequency step calculated for cmin and array aperture.
+    
+    Parameters:
+    -----------
+    fmin, fmax : float
+        Frequency range for which the beamforming result is calculated.
+    df : float
+        Optimum frequency step calculated from the array phase criterion.
 
-    :return: numpy.ndarray 
-        freq: reduced sampling frequencies for beamforming
+    freq : numpy.ndarray 
+        Reduced sampling frequencies to do beamforming.
     """
 
     # compute linear sampling frequencies fraction and df growth parameter
@@ -127,13 +135,21 @@ def nlinear_freqs(fmin, fmax, df):
 def calculate_CSDM(dft_array, neig, norm):
     """
     Calculation of CSDM matrix for beamforming.
-    :param dft_array: 2-Dim array containing DFTs of all stations
-        and for multiple time windows. dim: [n_stations, n_windows].
-    :param neig: Number of eigenvalues to project out.
-    :param norm: If True, normalize CSDM matrix.
+    
+    Parameters:
+    -----------
+    dft_array : numpy.ndarray
+        2-Dim array containing DFTs of all stations and for multiple time windows.
+        (dim: [n_stations, n_windows]) 
+    neig : int (>=0) or None
+        Number of eigenvalues to project out.
+    norm : boolean 
+        If True, normalize CSDM matrix.
 
-    :return: numpy.ndarray (dim: [n_stats, n_stats])
-        csdm: the cross-spectral-density matrix
+    Returns:
+    --------
+    CSDM : numpy.ndarray
+        The cross-spectral-density matrix. (dim: [n_stats, n_stats])
     """
 
     # CSDM matrix
@@ -162,17 +178,23 @@ def annul_dominant_interferers(CSDM, neig, data):
     """
     This routine cancels the strong interferers from the data by projecting the
     dominant eigenvectors of the cross-spectral-density matrix out of the data.
-    :type CSDM: numpy.ndarray
-    :param CSDM: cross-spectral-density matrix obtained from the data.
-    :type neig: integer
-    :param neig: number of dominant CSDM eigenvectors to annul from the data.
-    :type data: numpy.ndarray
-    :param data: the data which was used to calculate the CSDM. The projector is
+    
+    Parameters:
+    -----------
+    CSDM : numpy.ndarray
+        Cross-spectral-density matrix obtained from the data.
+    neig : integer (>=0) or None
+        Number of dominant CSDM eigenvectors to annul from the data.
+    data : numpy.ndarray
+        The data which was used to calculate the CSDM. The projector is
         applied to it in order to cancel the strongest interferer.
 
-    :return: numpy.ndarray (dim: [n_stats, n_stats])
-        csdm: the new cross-spectral-density matrix calculated from the data after
+    Returns:
+    --------
+    csdm : numpy.ndarray
+        The new cross-spectral-density matrix calculated from the data after
         the projector was applied to eliminate the strongest source.
+        (dim: [n_stats, n_stats])
     """
 
     if neig <= 0:
@@ -197,13 +219,18 @@ def annul_dominant_interferers(CSDM, neig, data):
 def annul_dominant_interferers_all(CSDM_all, neig):
     """
     Removes dominant eigenvectors from a stack of CSDM matrices.
-    :type CSDM_all: numpy.ndarray (dim: [n_freq, n_stats, n_stats])
-    :param CSDM_all: Cross-spectral density matrix stack.
-    :type neig: int (>=0)
-    :param neig: Number of dominant eigenvectors (noise sources) to remove
+    
+    Parameters:
+    -----------
+    CSDM_all : numpy.ndarray
+        Cross-spectral density matrix stack. (dim: [n_freq, n_stats, n_stats])
+    neig : int (>=0)
+        Number of dominant eigenvectors (noise sources) to remove.
 
-    :return: numpy.ndarray (dim: [n_freq, n_stats, n_stats])
-        Projected CSDM_all matrix satck.
+    Returns:
+    --------
+    CSDM_all_proj : numpy.ndarray
+        Projected CSDM_all matrix satck. (dim: [n_freq, n_stats, n_stats])
     """
 
     if neig <= 0:
@@ -233,16 +260,21 @@ def annul_dominant_interferers_all(CSDM_all, neig):
 def phase_matching(replica, CSDM, processor):
     """
     Does phase matching of the replica vector with the CSDM matrix.
-    :type replica: numpy.ndarray (dim: [n_stats, n_param])
-    :param replica: 2-D array containing the replica vectors of all parameter
-        combinations.
-    :type CSDM: numpy.ndarray (dim: [n_stats, n_stats])
-    :param CSDM: 2-D array CSDM matrix.
-    :type processor: string ('bartlett' or 'adaptive')
-    :param processor: Processor used for phase matching.
+    
+    Parameters:
+    -----------
+    replica : numpy.ndarray
+        2-D array containing the replica vectors of all parameter
+        combinations. (dim: [n_stats, n_param])
+    CSDM : numpy.ndarray
+        2-D array CSDM matrix. (dim: [n_stats, n_stats])
+    processor : string ('bartlett' or 'adaptive')
+        Processor used for phase matching.
 
-    :return: numpy.ndarray (dim: [n_param])
-        the beam.
+    Returns:
+    --------
+    beam : numpy.ndarray
+        The beam. (dim: [n_param])
     """
 
     if processor == "adaptive":
@@ -272,17 +304,22 @@ def phase_matching(replica, CSDM, processor):
 def phase_matching_fast(replica, CSDM, processor):
     """
     Does phase matching of the replica vector with the CSDM matrix in a faster way.
-    tmp is calculated by highly optimized BLAS matrix multiplication subroutine. 
-    :type replica: numpy.ndarray (dim: [n_stats, n_param])
-    :param replica: 2-D array containing the replica vectors of all parameter
-        combinations.
-    :type CSDM: numpy.ndarray (dim: [n_stats, n_stats])
-    :param CSDM: 2-D array CSDM matrix.
-    :type processor: string ('bartlett' or 'adaptive')
-    :param processor: Processor used for phase matching.
+    tmp is calculated by highly optimized BLAS matrix multiplication subroutine.
+    
+    Parameters:
+    -----------
+    replica : numpy.ndarray
+        2-D array containing the replica vectors of all parameter
+        combinations. (dim: [n_stats, n_param])
+    CSDM : numpy.ndarray
+        2-D array CSDM matrix. (dim: [n_stats, n_stats])
+    processor : string ('bartlett' or 'adaptive')
+        Processor used for phase matching.
 
-    :return: numpy.ndarray (dim: [n_param])
-        the beam.
+    Returns:
+    --------
+    beam : numpy.ndarray
+        The beam. (dim: [n_param])
     """
 
     if processor == "adaptive":
@@ -311,16 +348,21 @@ def phase_matching_fast_all(replica_all, CSDM_all, processor):
     Does phase matching of the replica vectors with the CSDM matrix faster and
     for all frequencies at once. tmp calculated by highly optimized BLAS matrix 
     multiplication subroutine.
-    :type replica_all: numpy.ndarray (dim: [n_freq, n_stats, n_param])
-    :param replica_all: 2-D array containing the replica vectors of all parameter
-        combinations and all frequencies.
-    :type CSDM_all: numpy.ndarray (dim: [n_freq, n_stats, n_stats])
-    :param CSDM_all: 2-D array CSDM matrix.
-    :type processor: string ('bartlett' or 'adaptive')
-    :param processor: Processor used for phase matching.
 
-    :return: numpy.ndarray (dim: [n_freq, n_param])
-        the beams for all frequencies.
+    Parameters:
+    -----------
+    replica_all : numpy.ndarray
+        2-D array containing the replica vectors of all parameter
+        combinations and all frequencies. (dim: [n_freq, n_stats, n_param])
+    CSDM_all : numpy.ndarray
+        2-D array CSDM matrix. (dim: [n_freq, n_stats, n_stats])
+    processor : string ('bartlett' or 'adaptive')
+        Processor used for phase matching.
+
+    Returns:
+    --------
+    beam_all : numpy.ndarray
+        The beams for all frequencies. (dim: [n_freq, n_param])
     """
     '''
     # BLAS-backed batch matmul
@@ -365,33 +407,35 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
     specified with xmax, ymax, zmax. In this case, dx, dy, and dz need to be set
     to zero!
 
-    :type data: numpy.ndarray
-    :param data: time series of used stations (dim: [number of samples, number of stations])
-    :type scoord: numpy.ndarray
-    :param scoord: UTM coordinates [easting, northing] of stations (dim: [number of stations, 2])
-    :type xrng, yrng, zrng: tuple
-    :param xrng, yrng, zrng: parameters for spatial grid search. Grid ranges
+    Parameters:
+    -----------
+    data : numpy.ndarray
+        Time series of used stations. (dim: [number of samples, number of stations])
+    scoord : numpy.ndarray
+        UTM coordinates [easting, northing] of stations. (dim: [number of stations, 2])
+    xrng, yrng, zrng : tuple
+        Parameters for spatial grid search. Grid ranges
         from xrng[0] to xrng[1], yrng[0] to yrng[1], and zrng[0] to zrng[1].
-    :type dx, dy, dz: float
-    :param dx, dy, dz: grid resolution; increment from xrng[0] to xrng[1],
-        yrng[0] to yrng[1], zrng[0] to zrng[1]
-    :type svrng: tuple
-    :param svrng: slowness interval used to calculate replica vector
-    :type ds: float
-    :param ds: slowness step used to calculate replica vector
-    :type slow: boolean
-    :param slow: if true, svmin, svmax, dsv are slowness values. if false, velocity values
-    :type fmin, fmax: float
-    :param fmin, fmax: frequency range for which the beamforming result is calculated
-    :type df: float or None
-    :param df: frequency step between fmin and fmax - if df is None the optimum df is
-        calculated from the maximum slowness
-    :type freq_linear: boolean
-    :param freq_linear: if True, frequencies range with constant frequency step
-                        if False, increasing frequency steps for higher frequencies
-                        (-> see nlinear_freq and lin_log_freq fcts)
-    :type freq_decimation: int (>0) or None
-    :param freq_decimation: frequency decimation factor applied to the frequency axis when evaluating
+    dx, dy, dz : float
+        Grid resolution; increment from xrng[0] to xrng[1],
+        yrng[0] to yrng[1], zrng[0] to zrng[1].
+    svrng : tuple
+        Slowness interval used to calculate replica vector.
+    ds : float
+        Slowness step used to calculate replica vector.
+    slow : boolean
+        If true, svmin, svmax, ds are slowness values [s/km]. if false, velocity values [m/s].
+    fmin, fmax : float
+        Frequency range for which beamforming is calculated.
+    df : float or None
+        Frequency step between fmin and fmax - if df is None the optimum df is
+        calculated from the maximum slowness.
+    freq_linear : boolean
+        If True, frequencies range with constant frequency step.
+        if False, increasing frequency steps for higher frequencies.
+        (-> see nlinear_freq and lin_log_freq fcts)
+    freq_decimation : int (>0) or None
+        Frequency decimation factor applied to the frequency axis when evaluating
         the beamformer. Only every `freq_decimation`-th frequency is used while the skipped frequencies
         are accounted for by bandwidth weighting. if not None 'freq_linear' parameter is set to True.
         Better alternative to a growing df for higher frequencies. A too large df can introduce phase
@@ -405,38 +449,38 @@ def matchedfield_beamformer(data, scoord, xrng, yrng, zrng, dx, dy, dz, svrng, d
         criterion: df_max = 1 / (4 * array_aperture * max_slowness), 
         while reducing computational costs. this ensures that steering phases remain coherent across the 
         array and prevents beamforming artefacts due to excessive frequency spacing.
-    :type Fs: float
-    :param Fs: sampling rate of data streams
-    :type w_length: float
-    :param w_length: length of sliding window in seconds. result is "averaged" over windows
-    :type w_delay: float
-    :param w_delay: delay of sliding window in seconds with respect to previous window
-    :type processor: string ("bartlett" or "adaptive")
-    :param processor: processor used to match the cross-spectral-density matrix to the
-        replica vector. see Corciulo et al., 2012
-    :type neig: integer (>=0)
-    :param neig: number of dominant CSDM eigenvectors to annul from the data - suppresses
-        strong sources.
-    :type norm: boolean
-    :param norm: if True, beam power is normalized.
-    :type vectorize_freq: boolean
-    :param vectorize_freq:  if True, last remaining loop over the sample frequencies is also
-                            vectorized. all replicas and beams are computed at once - more
-                            memory intense.
-                            if False, replica and beams are computed inside the frequency loop
-                            - memory-friendly.
-    :type preallocate_replica: boolean
-    :param preallocate_replica: if True, replica is preallocated and allocated memory is reused
-                                in the frequency loop - memory-friendly.
-                                if False, each replica is allocated at an individual memory location
-                                during the single frequency loops.
+    Fs : float
+        Sampling rate of data streams.
+    w_length : float
+        Length of sliding window in seconds. Result is "averaged" over windows.
+    w_delay : float
+        Delay or overlap of sliding window in seconds with respect to previous window.
+    processor : string ("bartlett" or "adaptive")
+        Processor used to match the cross-spectral-density matrix to the replica vector (see Corciulo et al., 2012).
+    neig : integer (>=0)
+        Number of dominant CSDM eigenvectors to annul from the data - suppresses strong sources.
+    norm : boolean
+        If True, beam power is normalized.
+    vectorize_freq : boolean
+        If True, last remaining loop over the sample frequencies is also vectorized. 
+        All replicas and beams are computed at once - more memory intense.
+        If False, replica and beams are computed inside the frequency loop - memory-friendly.
+    preallocate_replica : boolean
+        If True, replica is preallocated and allocated memory is reused in the frequency loop - memory-friendly.
+        If False, each replica is allocated at an individual memory location during the single frequency loops.
 
-    :return: four numpy arrays:
-        xcoord: grid coordinates in x-direction (dim: [number x-grid points, 1])
-        ycoord: grid coordinates in y-direction (dim: [number y-grid points, 1])
-        zcoord: grid coordinates in z-direction (dim: [number z-grid points, 1])
-        c: phase velocity (dim: [number of cs, 1])
-        beamformer (dim: [number y-grid points, number x-grid points, number z-grid points, number cs])
+    Returns:
+    --------
+    xcoord : numpy.ndarray
+        Grid coordinates in x-direction. (dim: [number x-grid points, 1])
+    ycoord : numpy.ndarray
+        Grid coordinates in y-direction (dim: [number y-grid points, 1])
+    zcoord : numpy.ndarray
+        Grid coordinates in z-direction (dim: [number z-grid points, 1])
+    c : numpy.ndarray
+        Phase velocity (dim: [number of cs, 1])
+    beamformer : numpy.ndarray
+        Beamformer (dim: [number y-grid points, number x-grid points, number z-grid points, number cs])
     """
 
     # number of stations
