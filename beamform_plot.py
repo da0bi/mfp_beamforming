@@ -402,8 +402,7 @@ for fpath in sorted(directory.iterdir()):
                       bf_crs="EPSG:32627"
                       )
 
-
-# Create a GIF animation of the beamformer array over time
+# Create a GIF animation of the saved png files
 gif_name = f"{t_dt:%Y-%m-%d}_animation.gif"
 gif_path = png_dir / gif_name
 frames = [imageio.imread(png) for png in sorted(png_dir.glob("*.png"))]
