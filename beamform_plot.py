@@ -36,7 +36,10 @@ def imp_shelve_file(directory, file_to_load):
         'beamformer': beamformer
         }
         
-    :return: beam_data dictionary
+    Returns: 
+    --------
+    bf_data : dictionary
+        Beamformer dictionary. 
     """
     
     filepath_to_load = os.path.join(
@@ -60,19 +63,22 @@ def bf_opt_arr_per_t(bf_data, mode):
     Computes and saves the mean beamformer array for each beam_data dicitionary. 
     Extracts the optimum z-coordinate and slowness for each beamformer timestep.
     
-    :type bf_data: dictionary
-    :param bf_data: see imp_shelve_file fct for dictionary structure
-    :type mode: string ('mean' or 'max')
-    :param mode: defines the criterion of choosing the optimum beamformer for each timestep.
+    Parameters:
+    -----------
+    bf_data : dictionary
+        See imp_shelve_file fct for dictionary structure.
+    mode : string ('mean' or 'max')
+        Defines the criterion of choosing the optimum beamformer for each timestep.
         'mean': beamfomer with highest mean value, 'max': beamfomer with highest max value    
 
-    :return:    best_per_t: 
-                    dictionary with optimum z and slowness, and highest semblance value for 
-                    each timestep.
-                mean_bf_array:
-                    numpy array of the mean beamformer
-                xymax:
-                    list of x, y coordinates of the max semblance value for each timestamp.
+    Returns:
+    --------
+    best_per_t : list 
+        Dictionary with optimum z and slowness, and highest semblance value for each timestep.
+    mean_bf_array : numpy.ndarray
+        Array of the mean beamformer.
+    xymax : list
+        Datetime and x, y coordinates of the max semblance value for each timestamp.
     """
     
     best_per_t = {}
@@ -136,13 +142,17 @@ def max_xy_coord(arr, xcoord, ycoord):
     """
     Looks up the x, y coordinates of the array'smax value.
     
-    :type arr: numpy.ndarray
-    :param arr:  beamformer array for a timestep
-    :type xcoord, ycoord: list
-    :param xcoord, ycoord: list of x,y-coordinates    
+    Parameters:
+    -----------
+    arr : numpy.ndarray
+        Beamformer array for one timestep.
+    coord, ycoord : list
+        x,y-coordinates of the array.    
 
-    :return:    max_x, max_y: 
-                    x,y-coordinates of the maximum array value.
+    Returns:
+    --------
+    max_x, max_y : list
+        x,y-coordinates of the maximum array values.
     """
     # find the flat index of the max value
     flat_idx = np.argmax(arr)
@@ -174,33 +184,35 @@ def plot_bf_array(
     bf_crs
 ):
     """
-    Plot the mean beamformer array on top of optional shapefile and/or ortho background.
-    Beamformer is NOT resampled — plotted using its original xcoord/ycoord grid.
+    Plot the mean beamformer array on top of optional backgrounds.
+    Locations of the maximum semblance values can be also plotted.
 
     Parameters
     ----------
     mean_bf_array : np.ndarray
-        2D beamformer array (ny, nx)
+        2D beamformer array. (dim: [ny, nx])
     semb_max, semb_min : float
-        Max and min semblance values for plotting
-    xcoord, ycoord : np.ndarray
-        Coordinates of beamformer grid
-    scoord : np.ndarray
-        Station coordinates (n_stations, 2)
-    xymax : list
-        List of tuples [(t, x_max, y_max), ...] of beamformer maxima
+        Max and min semblance values for plotting.
+    xcoord, ycoord : numpy.ndarray
+        Coordinates of beamformer grid. (dim: [nx], [ny])
+    scoord : numpy.ndarray
+        Station coordinates. (dim: [n_stations, 2])
+    xymax : list or None
+        List of tuples [(t, x_max, y_max), ...] of beamformer maxima. (optional)
     shp_path : str
-        Path to shapefile (optional)
+        Path to shapefile. (optional)
     ortho_path : str
-        Path to ortho image (optional)
+        Path to ortho image. (optional)
     title : str
-        Plot title
+        Plot title.
     png_name : str
-        Output PNG file name
+        Output PNG file name.
     png_dir : str or Path
-        Directory to save PNG
+        Directory to save PNG.
     background : str
-        Which background to show: "shp", "ortho", "both", "none"
+        Which background to show: "shp", "ortho", "both", "none".
+    bf_crs : str
+        CRS of the beamformer coordinates (e.g. "EPSG:32627").
     """
 
     xs = scoord[:, 0]
@@ -405,6 +417,6 @@ frames = [imageio.imread(png) for png in sorted(png_dir.glob("*.png"))]
 imageio.mimsave(
     gif_path,
     frames,
-    duration=5,
+    fps=1, # frames per second
     loop=0
 )
