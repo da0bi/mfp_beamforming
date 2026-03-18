@@ -314,7 +314,6 @@ def plot_bf_array(
     plt.close(fig)
 
 
-
 ###################
 # DEFINE PARAMETERS
 ###################
@@ -369,7 +368,9 @@ ycoord = imp_shelve_file(directory, sorted(directory.glob("*.db"))[0].name)[t]['
 # LOAD DATA, CALCULATE AND PLOT BEAMFORMER
 ##########################################
 for fpath in sorted(directory.iterdir()):
+    
     if fpath.is_file() and fpath.suffix == ".db":
+    
         print(fpath)
 
         # load the data
@@ -378,13 +379,12 @@ for fpath in sorted(directory.iterdir()):
         # calculate the mean beamformer array of all the beamformer array with the highest means or maxs per time step
         best_per_t, mean_bf_array, xymax = bf_opt_arr_per_t(bf_data, mode='max')
 
-        # plotting
-        
         # parse string to datetime
-        # adjust the format string for the title
         t = list(bf_data.keys())[0]
         t_dt = datetime.strptime(t, "%Y-%m-%dT%H:%M:%S")
         t_next = t_dt + timedelta(hours=1)
+        
+        # adjust the format string for the plot title and png file name 
         title = f"{t_dt:%Y-%m-%d} {t_dt:%H}:00 – {t_next:%H}:00"
         png_name = f"{t_dt:%Y-%m-%d}_{t_dt:%H}_{t_next:%H}"
 
