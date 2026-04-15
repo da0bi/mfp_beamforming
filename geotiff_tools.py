@@ -109,8 +109,8 @@ def merge_geotiffs(input_folder, output_path):
     for src in src_files:
         src.close()
 
-    return output_path   
-    
+    return output_path
+
 
 def crop_orthofoto(
     ortho_path,
@@ -138,7 +138,7 @@ def crop_orthofoto(
     output_path : Path
         Path to saved cropped GeoTIFF.
     """
-    
+
     ortho_path = Path(ortho_path)
     output_path = Path(output_path)
 

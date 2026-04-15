@@ -1,0 +1,23 @@
+{
+    "directory": "/home/db/Projects/APO_Monitoring_2023/10_psysmon/output/mfp_beamforming/202307_08_run2/beam",
+    "scoord": [
+        [4.88863554e+05, 8.28159521e+06],
+        [4.88873332e+05, 8.28157018e+06],
+        [4.88848224e+05, 8.28157333e+06],
+        [4.87705465e+05, 8.28305286e+06],
+        [4.87693803e+05, 8.28302934e+06],
+        [4.87680495e+05, 8.28305106e+06],
+        [4.85930291e+05, 8.28385403e+06],
+        [4.85949843e+05, 8.28386520e+06],
+        [4.85946872e+05, 8.28384478e+06]
+    ],
+    "shp_path": "/home/db/Projects/APOlsen/01_QGis/03_APO_shp/APO_utm.shp",
+    "ortho_path": "/home/db/Projects/APOlsen/01_QGis/2016_SDFE_DEM/APO_dem/merged_utm_cropped.tif",
+    "sembrng": [0.2, 0.45],
+    "maskoutside": [0.35, 0.45],
+    "plot_xymax": true,
+    "background": "ortho",
+    "bf_crs": "EPSG:32627",
+    "fps_gif": 1,
+    "fps_video": 4
+}
