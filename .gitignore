@@ -1,33 +1,10 @@
 # Ignore compiled python files.
+__pycache__/
 *.pyc
 
-# Ignore temporary files.
-*.bak
-
-# Ignore the coverage folder
-.coverage
-
-# Ignore the MANIFEST file.
-MANIFEST
-
-# Ignore the .swp file
-*.swp
-
-# Ignore build files.
-*.o
-*.so
-*.dll
-
-# Emacs backup and temp files.
-*~
-\#*\#
-.#*
-
-# Ignore the egg installation folder.
-psysmon.egg-info/
-
-scoord.npy
+scoord.*
 *.txt
-
 .~lock.*
-scoord.csv
+
+beamform_fcts_ori.py
+test_runs.ods
