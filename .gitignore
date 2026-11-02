@@ -30,3 +30,4 @@ scoord.npy
 *.txt
 
 .~lock.*
+scoord.csv
